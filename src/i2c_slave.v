@@ -57,6 +57,7 @@ parameter   I2C_MASTER_WRITE    = 1'd0;   // i2c master write slave
 // i2c 8bit-regsiter is used to store data
 reg [7:0] i2c_slave_input_shift   = 0;
 reg [7:0] i2c_slave_output_shift  = 0;
+reg [7:0] i2c_slave_byte_store    = 0;
 // i2c ack receive status
 wire i2c_ack_status = i2c_sda;
 // i2c register address
@@ -92,6 +93,7 @@ begin
                         // When I2C master is write to I2C slave, the first byte write to slave is slave's register address.
                         if (i2c_slave_input_shift[0]) begin
                             i2c_state_machine <= I2C_MASTER_READ_REG;
+                            i2c_reg_addr_changed_r <= 1;
                         end
                         else begin
                             i2c_state_machine <= I2C_GET_REG_ADDR;
@@ -105,6 +107,7 @@ begin
                 I2C_GET_REG_ADDR: begin
                     i2c_reg_addr_r <= i2c_slave_input_shift;
                     i2c_state_machine <= I2C_MASTER_WRITE_REG;
+                    i2c_reg_addr_changed_r <= 1;
                 end
                 I2C_MASTER_WRITE_REG: begin
                     i2c_reg_addr_r <= i2c_reg_addr_r + 1'b1;
@@ -142,7 +145,7 @@ always @ (posedge mod_clk) begin
 end
 
 always @ (posedge i2c_reg_data_ready) begin
-    i2c_slave_output_shift <= i2c_data_in;
+    i2c_slave_byte_store <= i2c_data_in;
 end
 
 // I2C slave opearate i2c_sda in i2c_clk negative edge
@@ -182,10 +185,20 @@ begin
                     i2c_sda_out_ctr <= 1;
                 end
             end
+            else if (i2c_neg_bit_cnt == 0) begin
+                i2c_neg_bit_cnt <= i2c_neg_bit_cnt + 1'b1;
+                i2c_slave_output_shift[7:0] <= i2c_slave_byte_store[7:0];
+                if (i2c_state_machine == I2C_MASTER_READ_REG) begin
+                    i2c_sda_out_ctr <= i2c_slave_byte_store[7];
+                end
+                else begin
+                    i2c_sda_out_ctr <= 1;
+                end
+            end
             else begin
                 i2c_neg_bit_cnt <= i2c_neg_bit_cnt + 1'b1;
                 if (i2c_state_machine == I2C_MASTER_READ_REG) begin
-                    i2c_sda_out_ctr <= i2c_slave_output_shift[i2c_neg_bit_cnt];
+                    i2c_sda_out_ctr <= i2c_slave_output_shift[7 - i2c_neg_bit_cnt];
                 end
                 else begin
                     i2c_sda_out_ctr <= 1;
