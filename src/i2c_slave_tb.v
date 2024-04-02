@@ -2,19 +2,6 @@
 
 module i2c_slave_tb();
 
-// module i2c_slave(
-//     input mod_clk,
-//     inout i2c_sda,
-//     input i2c_clk,
-//     input  [7:0] i2c_data_in,
-//     output [7:0] i2c_reg_addr,
-//     output [7:0] i2c_data_out,
-//     output i2c_data_transfer_dir,
-//     output i2c_data_transfer_done,
-//     output i2c_reg_addr_changed,
-//     input  i2c_reg_data_ready
-// );
-
     reg mod_clk;
     reg i2c_clk;
     reg i2c_sda;
